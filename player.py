@@ -71,6 +71,10 @@ class Main(QWidget):
       ]))
     self.timer.start()
 
+  def playOrPause(self):
+    self.player.pause()
+    self.timer.start()
+
   def setPosition(self, position):
     self.player.set_position(position / 65536)
 
@@ -86,19 +90,19 @@ class Main(QWidget):
     if event.key() == Qt.Key_Q:
       sys.exit(0)
     elif event.key() == Qt.Key_D:
-      self.player.set_time(self.player.get_time() + 1000)
+      self.player.set_time(self.player.get_time() + 3000)
     elif event.key() == Qt.Key_A:
-      self.player.set_time(self.player.get_time() - 1000)
+      self.player.set_time(self.player.get_time() - 3000)
     elif event.key() == Qt.Key_S:
-      self.player.set_time(self.player.get_time() + 5000)
+      self.player.set_time(self.player.get_time() + 10000)
     elif event.key() == Qt.Key_W:
-      self.player.set_time(self.player.get_time() - 5000)
+      self.player.set_time(self.player.get_time() - 10000)
     elif event.key() == Qt.Key_C:
       self.player.set_time(self.player.get_time() + self.mspf())
     elif event.key() == Qt.Key_X:
       self.player.set_time(self.player.get_time() - self.mspf())
     elif event.key() == Qt.Key_Space:
-      self.player.pause()
+      self.playOrPause()
     elif event.key() == Qt.Key_F:
       filename = os.path.join(os.path.expanduser("~"), os.path.basename(self.files[self.index].path) + "-" + str(time.time()) + ".png")
       self.player.video_take_snapshot(0, filename, 0, 0)
@@ -124,9 +128,9 @@ class Main(QWidget):
     elif event.key() == Qt.Key_2:
       self.player.set_rate(1.2)
     elif event.key() == Qt.Key_3:
-      self.player.set_rate(2)
+      self.player.set_rate(1.5)
     elif event.key() == Qt.Key_4:
-      self.player.set_rate(2.5)
+      self.player.set_rate(2)
     elif event.key() == Qt.Key_5:
       self.player.set_rate(3)
 
