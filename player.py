@@ -28,17 +28,30 @@ class Main(QWidget):
     ''')
 
     self.screen = QWidget()
+    self.screen.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     self.vlc = vlc.Instance()
     self.player = self.vlc.media_player_new()
     self.player.set_xwindow(self.screen.winId())
 
-    self.layout = QVBoxLayout()
-    self.setLayout(self.layout)
-    self.layout.addWidget(self.screen)
+    self.mainBox = QVBoxLayout()
+    self.setLayout(self.mainBox)
+    self.mainBox.addWidget(self.screen)
 
     self.label = QLabel()
-    self.layout.addWidget(self.label)
+    self.label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+    self.mainBox.addWidget(self.label)
     self.label.hide()
+
+    self.slider = Slider(Qt.Horizontal, self)
+    self.slider.player = self.player
+    self.slider.setMaximum(65536)
+    self.slider.sliderMoved.connect(self.setPosition)
+    self.mainBox.addWidget(self.slider)
+    self.slider.hide()
+
+    self.timer = QTimer(self)
+    self.timer.setInterval(200)
+    self.timer.timeout.connect(self.update)
 
     self.files = []
     for arg in sys.argv[1:]:
@@ -52,10 +65,19 @@ class Main(QWidget):
     self.player.set_media(self.files[self.index].media)
     self.player.play()
     m = self.player.get_media()
-    self.label.setText('\n'.join([
+    self.label.setText(' '.join([
       '%d / %d' % (self.index + 1, len(self.files)),
       self.files[self.index].path,
       ]))
+    self.timer.start()
+
+  def setPosition(self, position):
+    self.player.set_position(position / 65536)
+
+  def update(self):
+    self.slider.setValue(self.player.get_position() * 65536)
+    if not self.player.is_playing():
+      self.timer.stop()
 
   def mspf(self):
     return int(1000 // (self.player.get_fps() or 25))
@@ -78,7 +100,7 @@ class Main(QWidget):
     elif event.key() == Qt.Key_Space:
       self.player.pause()
     elif event.key() == Qt.Key_F:
-      filename = os.path.basename(self.files[self.index].path) + "-" + str(time.time()) + ".png"
+      filename = os.path.join(os.path.expanduser("~"), os.path.basename(self.files[self.index].path) + "-" + str(time.time()) + ".png")
       self.player.video_take_snapshot(0, filename, 0, 0)
     elif event.key() == Qt.Key_J:
       self.index += 1
@@ -90,11 +112,13 @@ class Main(QWidget):
       if self.index < 0:
         self.index = len(self.files) - 1
       self.play()
-    elif event.key() == Qt.Key_Tab:
+    elif event.key() == Qt.Key_E:
       if self.label.isHidden():
         self.label.show()
+        self.slider.show()
       else:
         self.label.hide()
+        self.slider.hide()
     elif event.key() == Qt.Key_1:
       self.player.set_rate(1)
     elif event.key() == Qt.Key_2:
@@ -105,6 +129,15 @@ class Main(QWidget):
       self.player.set_rate(2.5)
     elif event.key() == Qt.Key_5:
       self.player.set_rate(3)
+
+class Slider(QSlider):
+  def __init__(self, *args):
+    super(QSlider, self).__init__(*args)
+    self.player = None
+
+  def mousePressEvent(self, event):
+    self.setValue(self.maximum() * event.x() / self.width())
+    self.player.set_position(self.value() / self.maximum())
 
 if __name__ == '__main__':
   app = QApplication(sys.argv)
