@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+import sys
+import vlc
+import os
+import time
+
+class File:
+  def __init__(self, path, media):
+    self.path = path
+    self.media = media
+
+class Main(QWidget):
+  def __init__(self):
+    super(QWidget, self).__init__()
+
+    self.setStyleSheet('''
+    QWidget {
+      background-color: #000;
+      color: #FFF;
+    }
+    QLabel {
+      font-size: 18px;
+    }
+    ''')
+
+    self.screen = QWidget()
+    self.vlc = vlc.Instance()
+    self.player = self.vlc.media_player_new()
+    self.player.set_xwindow(self.screen.winId())
+
+    self.layout = QVBoxLayout()
+    self.setLayout(self.layout)
+    self.layout.addWidget(self.screen)
+
+    self.label = QLabel()
+    self.layout.addWidget(self.label)
+    self.label.hide()
+
+    self.files = []
+    for arg in sys.argv[1:]:
+      media = self.vlc.media_new(arg)
+      self.files.append(File(arg, media))
+
+    self.index = 0
+    self.play()
+
+  def play(self):
+    self.player.set_media(self.files[self.index].media)
+    self.player.play()
+    m = self.player.get_media()
+    self.label.setText('\n'.join([
+      '%d / %d' % (self.index + 1, len(self.files)),
+      self.files[self.index].path,
+      ]))
+
+  def mspf(self):
+    return int(1000 // (self.player.get_fps() or 25))
+
+  def keyPressEvent(self, event):
+    if event.key() == Qt.Key_Q:
+      sys.exit(0)
+    elif event.key() == Qt.Key_D:
+      self.player.set_time(self.player.get_time() + 1000)
+    elif event.key() == Qt.Key_A:
+      self.player.set_time(self.player.get_time() - 1000)
+    elif event.key() == Qt.Key_S:
+      self.player.set_time(self.player.get_time() + 5000)
+    elif event.key() == Qt.Key_W:
+      self.player.set_time(self.player.get_time() - 5000)
+    elif event.key() == Qt.Key_C:
+      self.player.set_time(self.player.get_time() + self.mspf())
+    elif event.key() == Qt.Key_X:
+      self.player.set_time(self.player.get_time() - self.mspf())
+    elif event.key() == Qt.Key_Space:
+      self.player.pause()
+    elif event.key() == Qt.Key_F:
+      filename = os.path.basename(self.files[self.index].path) + "-" + str(time.time()) + ".png"
+      self.player.video_take_snapshot(0, filename, 0, 0)
+    elif event.key() == Qt.Key_J:
+      self.index += 1
+      if self.index == len(self.files):
+        self.index = 0
+      self.play()
+    elif event.key() == Qt.Key_K:
+      self.index -= 1
+      if self.index < 0:
+        self.index = len(self.files) - 1
+      self.play()
+    elif event.key() == Qt.Key_Tab:
+      if self.label.isHidden():
+        self.label.show()
+      else:
+        self.label.hide()
+    elif event.key() == Qt.Key_1:
+      self.player.set_rate(1)
+    elif event.key() == Qt.Key_2:
+      self.player.set_rate(1.2)
+    elif event.key() == Qt.Key_3:
+      self.player.set_rate(2)
+    elif event.key() == Qt.Key_4:
+      self.player.set_rate(2.5)
+    elif event.key() == Qt.Key_5:
+      self.player.set_rate(3)
+
+if __name__ == '__main__':
+  app = QApplication(sys.argv)
+  m = Main()
+  m.show()
+  sys.exit(app.exec_())
